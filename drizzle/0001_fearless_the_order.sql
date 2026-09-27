@@ -1,0 +1,1 @@
+ALTER TABLE `documents` ADD `file_type` text DEFAULT 'pdf' NOT NULL;

@@ -1,0 +1,52 @@
+name: 🐞 Bug 反馈
+description: 网站有功能不正常，或者界面显示不对
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈！请尽量把下面的信息填完整，能省下很多来回追问的时间。
+        如果是**安全问题**，请不要在这里发，按 [SECURITY.md](../SECURITY.md) 私下报告。
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 出了什么问题
+      description: 说清你做了什么、期待看到什么、实际看到什么
+      placeholder: |
+        1. 打开「站点管理」，点击「新建站点」…
+        2. 上传一个 30 MB 的 mp4…
+        3. 期待：开始分片上传；实际：提示「文件内容与扩展名不匹配」
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: 版本或提交号
+      description: 仓库页面上可以复制提交号；如果是自己改过的代码，请说明
+      placeholder: v1.0.0 / 94efdc5
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: 运行环境
+      options:
+        - 本地开发（npm run dev）
+        - Cloudflare Workers 线上
+        - 其它（请在下面说明）
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: 浏览器与系统
+      placeholder: Chrome 141 / Android 15
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 报错信息 / 截图
+      description: 浏览器控制台报错、`npx wrangler tail` 的输出、或一张截图都可以（注意别贴出真实学生信息）
+    validations:
+      required: false

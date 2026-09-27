@@ -1,0 +1,27 @@
+{
+  // Worker 名称：部署后的地址是 https://<name>.<你的 workers.dev 子域>。
+  // 想用自己的名字就改这里（改名相当于新建一个 Worker，旧地址不会被自动删除）。
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "class-resource-hub",
+  "main": "dist/server/index.js",
+  "compatibility_date": "2026-09-01",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "class-local",
+      "migrations_dir": "drizzle",
+      // ⚠️ 部署到你自己的 Cloudflare 账号前，把这里换成
+      //    `npx wrangler d1 create class-local` 返回的 database_id，
+      //    否则会报找不到数据库。详见 docs/部署到Cloudflare.md
+      "database_id": "2d4df665-03d0-409f-bb5e-43dd9aee05b4"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "BUCKET",
+      // 需要先在 Cloudflare 控制台启用 R2，再运行
+      // `npx wrangler r2 bucket create class-local-files`
+      "bucket_name": "class-local-files"
+    }
+  ]
+}

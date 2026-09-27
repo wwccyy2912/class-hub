@@ -1,0 +1,37 @@
+name: 💡 功能建议
+description: 希望网站多做点什么，或者哪里用着别扭
+labels: [enhancement]
+body:
+  - type: textarea
+    id: scene
+    attributes:
+      label: 使用场景
+      description: 谁在什么情况下需要它？现在是怎么绕过去的？
+      placeholder: 我们是走读班，家长会要发纸质通知，希望能直接把通知单打印出来…
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 你设想的做法
+      description: 界面放在哪、按钮长什么样、管理员要不要有开关
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: 影响范围
+      options:
+        - 只是界面/文案
+        - 需要后端与数据库改动
+        - 需要新的权限开关
+        - 我也不确定
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: 补充说明
+      description: 参与的人多不多、有没有替代方案、是否愿意自己提 PR
+    validations:
+      required: false

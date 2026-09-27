@@ -1,0 +1,16 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+# 本项目源码刻意写得紧凑（一行多语句），缩进只有 1 个空格
+indent_size = 1
+
+[*.{json,jsonc,yml,yaml}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false

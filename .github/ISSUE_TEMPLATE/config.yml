@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 📖 使用说明
+    url: https://github.com/wwccyy2912/class-hub/blob/main/docs/使用说明.md
+    about: 功能怎么用、权限怎么配，先看这份手册
+  - name: 🚀 部署到 Cloudflare
+    url: https://github.com/wwccyy2912/class-hub/blob/main/docs/部署到Cloudflare.md
+    about: 从零部署、绑定域名、备份与排错
+  - name: 🔐 报告安全问题
+    url: https://github.com/wwccyy2912/class-hub/security/advisories/new
+    about: 安全漏洞请走私密报告，不要开公开 issue

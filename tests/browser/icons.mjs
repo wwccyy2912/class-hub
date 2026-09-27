@@ -1,0 +1,35 @@
+// 站点图标检查：所有浏览器标签页图标都指向同一套文件（PNG/ICO/SVG），并且能被正确解码
+import {spawn} from 'node:child_process';
+import WebSocket from '../../node_modules/ws/index.js';
+const SITE=process.env.BASE_URL||'http://127.0.0.1:4173';
+const PORT=Number(process.env.CDP_PORT||9443),profile='/tmp/cdp-icons-'+Date.now();
+const chrome=spawn('google-chrome',['--headless=new','--disable-gpu','--no-sandbox','--disable-dev-shm-usage','--remote-debugging-port='+PORT,'--user-data-dir='+profile,'about:blank'],{stdio:'ignore',detached:true});chrome.unref();
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+for(let i=0;i<60;i++){try{const r=await fetch('http://127.0.0.1:'+PORT+'/json/version');if(r.ok)break}catch(error){}await sleep(500)}
+const target=await (await fetch('http://127.0.0.1:'+PORT+'/json/new?'+encodeURIComponent(SITE+'/'),{method:'PUT'})).json();
+const ws=new WebSocket(target.webSocketDebuggerUrl,{maxPayload:64*1024*1024});
+await new Promise((resolve,reject)=>{ws.on('open',resolve);ws.on('error',reject)});
+let id=0;const pending=new Map();
+ws.on('message',raw=>{const m=JSON.parse(raw.toString());if(m.id&&pending.has(m.id)){const p=pending.get(m.id);pending.delete(m.id);m.error?p.reject(new Error(JSON.stringify(m.error))):p.resolve(m.result)}});
+const send=(method,params={})=>{const i=++id;ws.send(JSON.stringify({id:i,method,params}));return new Promise((resolve,reject)=>pending.set(i,{resolve,reject}))};
+const evaluate=async expression=>{const r=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true,userGesture:true});if(r.exceptionDetails)throw new Error('eval: '+String(r.exceptionDetails.exception?.description||'').slice(0,200));return r.result.value};
+const results=[];const check=(name,ok,extra)=>{console.log((ok?'PASS':'FAIL')+' :: '+name+(extra?' :: '+String(extra).slice(0,220):''));results.push(ok)};
+await send('Runtime.enable');await send('Page.enable');
+await send('Page.navigate',{url:SITE+'/'});await sleep(2500);
+const links=await evaluate('JSON.stringify([...document.querySelectorAll("link[rel=icon],link[rel=apple-touch-icon],link[rel=manifest]")].map(node=>({rel:node.rel,href:node.getAttribute("href"),type:node.type||"",sizes:node.getAttribute("sizes")||""})))');
+const list=JSON.parse(links);
+check('页头声明了 SVG/PNG/ICO 图标与 manifest',list.filter(item=>item.rel==='icon').length>=4&&list.some(item=>item.rel==='apple-touch-icon')&&list.some(item=>item.rel==='manifest'),links);
+check('图标地址带版本号（可长期缓存）',list.filter(item=>item.rel!=='manifest').every(item=>/\?v=[0-9a-f]{8}$/.test(item.href)),links);
+const measured=await evaluate('(async()=>{const urls=["/favicon.ico","/icon.svg","/icon-16.png","/icon-32.png","/icon-48.png","/icon-192.png","/apple-touch-icon.png"];const out=[];for(const url of urls){const response=await fetch(url);const blob=await response.blob();const item={url,type:response.headers.get("content-type"),size:blob.size};if(url.endsWith(".svg")){const text=await blob.text();item.fontTag=text.indexOf("<text")>=0;item.paths=(text.match(/<path/g)||[]).length;item.width=/width=\"([0-9]+)\"/.exec(text)?RegExp.$1:""}else if(url.endsWith(".ico")){const bytes=new Uint8Array(await blob.arrayBuffer());item.magic=[...bytes.slice(0,4)].join(",")}else{const bitmap=await createImageBitmap(blob);const canvas=new OffscreenCanvas(bitmap.width,bitmap.height);const context=canvas.getContext("2d");context.drawImage(bitmap,0,0);const center=context.getImageData(Math.floor(bitmap.width/2),Math.floor(bitmap.height/2),1,1).data;item.width=bitmap.width;item.height=bitmap.height;item.center=[center[0],center[1],center[2],center[3]].join(",")}out.push(item)}return JSON.stringify(out)})()');
+console.log('icons:',measured);
+const icons=JSON.parse(measured);
+check('PNG 图标都能解码且尺寸正确',icons.filter(item=>item.url.endsWith('.png')).every(item=>item.width===Number((/icon-(\d+)\.png|apple-touch-icon\.png/.test(item.url)?(/icon-(\d+)\.png/.exec(item.url)||[,'180'])[1]:'0'))||item.url.indexOf('apple-touch')>=0)&&icons.filter(item=>item.url.endsWith('.png')).length===5,'png='+icons.filter(item=>item.url.endsWith('.png')).length);
+check('图标中心是白色数字笔画（两个浏览器渲染同一份文件）',icons.filter(item=>item.url.endsWith('.png')).every(item=>item.center.split(',')[0]>230&&item.center.split(',')[3]>200),icons.filter(item=>item.url.endsWith('.png')).map(item=>item.center).join(' | '));
+check('favicon.ico 是合法的 ICO 容器',icons.find(item=>item.url==='/favicon.ico').magic==='0,0,1,0',JSON.stringify(icons.find(item=>item.url==='/favicon.ico')));
+const svg=icons.find(item=>item.url==='/icon.svg');
+check('SVG 图标不含字体文本（避免浏览器差异）',svg.fontTag===false&&svg.paths>=1,JSON.stringify(svg));
+const manifest=await evaluate('(async()=>{const response=await fetch("/site.webmanifest");const data=await response.json();return JSON.stringify({type:response.headers.get("content-type"),icons:data.icons.length,name:data.name})})()');
+check('manifest 提供安装用图标',JSON.parse(manifest).icons===2,manifest);
+check('首页与聊天页使用同一套图标',(await (async()=>{await send('Page.navigate',{url:SITE+'/chat/'});await sleep(2000);return evaluate('JSON.stringify([...document.querySelectorAll("link[rel=icon]")].map(node=>node.getAttribute("href")))')})()).indexOf('icon-32.png')>=0);
+console.log('TOTAL',results.length,', FAILED',results.filter(ok=>!ok).length);
+ws.close();chrome.kill('SIGKILL');process.exit(results.filter(ok=>!ok).length?1:0);
